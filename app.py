@@ -38,4 +38,20 @@ class HandTrackingModule:
         
         return lm_list
 
-    
+    def draw_volume_line(self, img, x1, y1, x2, y2, distance):
+        cv2.line(img, (x1, y1), (x2, y2), (0, 255, 0), 3)
+        cv2.circle(img, (x1, y1), 10, (255, 0, 0), cv2.FILLED)
+        cv2.circle(img, (x2, y2), 10, (255, 0, 0), cv2.FILLED)
+        center_x, center_y = (x1 + x2) // 2, (y1 + y2) // 2
+        radius = int(np.interp(distance, [50, 300], [10, 50]))
+        cv2.circle(img, (center_x, center_y), radius, (0, 255, 0), cv2.FILLED)
+
+tracker = HandTrackingModule()
+
+cap = cv2.VideoCapture(0)
+
+devices = AudioUtilities.GetSpeakers()
+interface = devices.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
+volume = cast(interface, POINTER(IAudioEndpointVolume))
+vol_range = volume.GetVolumeRange()
+min_vol, max_vol = vol_range[0], vol_range[1]
