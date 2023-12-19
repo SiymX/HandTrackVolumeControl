@@ -55,3 +55,45 @@ interface = devices.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
 volume = cast(interface, POINTER(IAudioEndpointVolume))
 vol_range = volume.GetVolumeRange()
 min_vol, max_vol = vol_range[0], vol_range[1]
+
+
+while True:
+    start = time.time()
+
+    ret, frame = cap.read()
+    if not ret:
+        break
+
+    frame = tracker.find_hands(frame)
+    lm_list = tracker.find_position(frame)
+    current_vol = None
+
+    if lm_list:
+        
+        x1, y1 = lm_list[4][1], lm_list[4][2]  
+        x2, y2 = lm_list[8][1], lm_list[8][2]  
+
+        distance = math.hypot(x2 - x1, y2 - y1)
+
+        vol = np.interp(distance, [50, 300], [min_vol, max_vol])
+        volume.SetMasterVolumeLevel(vol, None)
+
+        current_vol = volume.GetMasterVolumeLevelScalar()
+        vol_percentage = int(current_vol * 100)
+
+        tracker.draw_volume_line(frame, x1, y1, x2, y2, distance)
+
+    end = time.time()
+    fps = 1 / (end - start)
+
+    cv2.putText(frame, f'FPS: {int(fps)}', (10, 70), cv2.FONT_HERSHEY_PLAIN, 3, (255, 255, 255), 3)
+    if current_vol is not None:
+        cv2.putText(frame, f'Vol: {vol_percentage}%', (10, 120), cv2.FONT_HERSHEY_PLAIN, 3, (255, 0, 0), 3)
+
+    cv2.imshow("Handtrack", frame)
+
+    if cv2.waitKey(1) & 0xFF == ord('q') or cv2.getWindowProperty("Handtrack", cv2.WND_PROP_VISIBLE) < 1:
+        break
+
+cap.release()
+cv2.destroyAllWindows()
